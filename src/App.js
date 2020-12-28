@@ -37,17 +37,16 @@ const App = () => {
   const testInput = value => RegExp(/^[+-]?\d+(\.\d+)?$/).test(value)
 
   const onDelete = (i) => {
-    const newExpression = expression.slice(0)
-    newExpression.splice(i, 1)
-    setExpression(newExpression)
+    expression.splice(i, 1)
+    setExpression([...expression])
   }
 
-  const onAddition = (tag, inputPosition) => {
+  const onAddition = (tag, inputPosition, isInsertion) => {
     const value = tag.name.trim()
 
     if (tag.id || testInput(value)) {
       if (inputPosition > -1) {
-        expression.splice(inputPosition, 1, { ...tag, name: value })
+        expression.splice(inputPosition, isInsertion ? 0 : 1, { ...tag, name: value })
         setExpression([...expression])
       } else {
         setExpression([...expression, { ...tag, name: value }])
@@ -62,21 +61,34 @@ const App = () => {
     if (suggestedValue) {
       onAddition(suggestedValue)
     }
-    expressionInput?.current?.input?.current?.input?.current?.focus()
   }
 
-  const onInput = (inputQuery, inputPosition) => {
+  const onInput = (inputQuery, inputPosition, isInsertion, setInputPosition) => {
     const query = inputQuery.trim()
     const operation = AUTOCOMPLETION.find(item => query.includes(item.name))
+
     if (operation) {
       const number = query.replace(operation.name, '').trim()
       if (operation.name.length === query.length) {
-        setExpression([...expression, operation])
+        if (isInsertion) {
+          setInputPosition(inputPosition + 1)
+          expression.splice(inputPosition, 0, operation)
+          setExpression([...expression])
+        } else {
+          setExpression([...expression, operation])
+        }
       } else if (testInput(number)) {
-        setExpression([...expression, { name: number }, operation])
+        if (isInsertion) {
+          setInputPosition(inputPosition + 2)
+          expression.splice(inputPosition, 0, { name: number }, operation)
+          setExpression([...expression])
+        } else {
+          setExpression([...expression, { name: number }, operation])
+        }
       } else {
         setResult({ value: null, error: `"${number}" input is not allowed. Numbers (integers/floats) only.` })
       }
+
       // because this state change should happen after input state were set
       setTimeout(() => {
         expressionInput.current.clearInput()
@@ -112,7 +124,7 @@ const App = () => {
         }}/>
         <button onClick={() => {
           setDynamicVariables((prevState) => (
-            [...prevState, {id: Date.now(), name: dvInput.name, defaultValue: dvInput.value}]
+            [...prevState, {id: Date.now(), name: dvInput.name, defaultValue: dvInput.value, type: 'dv'}]
           ))
           setDvInput({name: '', value: ''})
         }}>Add</button>
