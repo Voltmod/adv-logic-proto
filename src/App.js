@@ -3,6 +3,8 @@ import ReactTags from '../src/react-tags/lib/ReactTags'
 import { parse } from 'mathjs'
 import './App.css'
 
+const testInput = value => RegExp(/^[+-]?\d+(\.\d+)?$/).test(value)
+
 const OPERATIONS = [
   { id: 1, name: '(', autocomplete: true },
   { id: 2, name: ')', autocomplete: true },
@@ -14,17 +16,14 @@ const OPERATIONS = [
   { id: 8, name: 'sqrt(' }
 ]
 
-const AUTOCOMPLETION = OPERATIONS.filter(operation => operation.autocomplete)
-
 const App = () => {
-  const [expression, setExpression] = useState([])
+  const [tags, setTags] = useState([])
   const [result, setResult] = useState({ error: null, value: null })
   const [dynamicVariables, setDynamicVariables] = useState([])
   const [dvInput, setDvInput] = useState({ name: '', value: '' })
-  const expressionInput = useRef()
 
   useEffect(() => {
-    const result = expression.map(item => item.defaultValue || item.name)
+    const result = tags.map(item => item.defaultValue || item.name)
     try {
       const node = parse(result.join(''))
       const code = node.compile()
@@ -32,80 +31,26 @@ const App = () => {
     } catch (err) {
       setResult({ value: null, error: err.message })
     }
-  }, [expression])
-
-  const testInput = value => RegExp(/^[+-]?\d+(\.\d+)?$/).test(value)
-
-  const onDelete = (i) => {
-    expression.splice(i, 1)
-    setExpression([...expression])
-  }
-
-  const onAddition = (tag, inputPosition, isInsertion) => {
-    const value = tag.name.trim()
-
-    if (tag.id || testInput(value)) {
-      if (inputPosition > -1) {
-        expression.splice(inputPosition, isInsertion ? 0 : 1, { ...tag, name: value })
-        setExpression([...expression])
-      } else {
-        setExpression([...expression, { ...tag, name: value }])
-      }
-    } else {
-      setResult({ value: null, error: `"${value}" input is not allowed. Numbers (integers/floats) only.` })
-    }
-  }
+  }, [tags])
 
   const onSelectPredefined = (predefinedArray) => (e) => {
     const suggestedValue = predefinedArray.find(item => String(item.id) === String(e.target.value))
     if (suggestedValue) {
-      onAddition(suggestedValue)
+      const value = suggestedValue.name.trim()
+      if (suggestedValue.id || testInput(suggestedValue)) {
+        setTags([...tags, { ...suggestedValue, name: value }])
+      } else {
+        onError(value)
+      }
     }
   }
 
-  const onInput = (inputQuery, inputPosition, isInsertion, setInputPosition) => {
-    const query = inputQuery.trim()
-    const operation = AUTOCOMPLETION.find(item => query.includes(item.name))
-
-    if (operation) {
-      const number = query.replace(operation.name, '').trim()
-      if (operation.name.length === query.length) {
-        if (isInsertion) {
-          setInputPosition(inputPosition + 1)
-          expression.splice(inputPosition, 0, operation)
-          setExpression([...expression])
-        } else {
-          setExpression([...expression, operation])
-        }
-      } else if (testInput(number)) {
-        if (isInsertion) {
-          setInputPosition(inputPosition + 2)
-          expression.splice(inputPosition, 0, { name: number }, operation)
-          setExpression([...expression])
-        } else {
-          setExpression([...expression, { name: number }, operation])
-        }
-      } else {
-        setResult({ value: null, error: `"${number}" input is not allowed. Numbers (integers/floats) only.` })
-      }
-
-      // because this state change should happen after input state were set
-      setTimeout(() => {
-        expressionInput.current.clearInput()
-      }, 0)
-    }
+  const onError = (value) => {
+    setResult({ value: null, error: `"${value}" input is not allowed. Numbers (integers/floats) only.` })
   }
 
   return (
     <div className="App-cont">
-      {/*<select*/}
-      {/*  value="calculator"*/}
-      {/*  name="node_type"*/}
-      {/*  onChange={() => {}}*/}
-      {/*>*/}
-      {/*  <option value="calculator">Calculator</option>*/}
-      {/*  <option value="router">Router</option>*/}
-      {/*</select>*/}
       <br/>
 
       <div>
@@ -124,10 +69,11 @@ const App = () => {
         }}/>
         <button onClick={() => {
           setDynamicVariables((prevState) => (
-            [...prevState, {id: Date.now(), name: dvInput.name, defaultValue: dvInput.value, type: 'dv'}]
+            [...prevState, { id: Date.now(), name: dvInput.name, defaultValue: dvInput.value, type: 'dv' }]
           ))
-          setDvInput({name: '', value: ''})
-        }}>Add</button>
+          setDvInput({ name: '', value: '' })
+        }}>Add
+        </button>
       </div>
       <br/>
 
@@ -167,13 +113,11 @@ const App = () => {
       <ReactTags
         allowNew
         minQueryLength={1}
-        onAddition={onAddition}
-        onDelete={onDelete}
-        placeholderText="Type an expression"
-        ref={expressionInput}
         suggestions={[...OPERATIONS, ...dynamicVariables]}
-        tags={expression}
-        onInput={onInput}
+        tags={tags}
+        addTags={setTags}
+        validation={testInput}
+        onError={onError}
       />
       <br/>
 
@@ -191,7 +135,7 @@ const App = () => {
       <div>
         <b>Expression values:</b> <br/>
         <ul>
-          {expression.map((item, index) => <li key={`${item.name + index}`}><code>{JSON.stringify(item)}</code></li>)}
+          {tags.map((item, index) => <li key={`${item.name + index}`}><code>{JSON.stringify(item)}</code></li>)}
         </ul>
       </div>
     </div>
