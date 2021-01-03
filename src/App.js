@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import ReactTags from '../src/react-tags/lib/ReactTags'
 import { parse } from 'mathjs'
 import './App.css'
