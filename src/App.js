@@ -5,31 +5,31 @@ import './App.css'
 
 const testInput = value => RegExp(/^[+-]?\d+(\.\d+)?$/).test(value)
 
-const OPERATIONS = [
-  { id: 1, name: '(', autocomplete: true },
-  { id: 2, name: ')', autocomplete: true },
-  { id: 3, name: '+', autocomplete: true },
-  { id: 4, name: '-', autocomplete: true },
-  { id: 5, name: '*', autocomplete: true },
-  { id: 6, name: '/', autocomplete: true },
-  { id: 7, name: '^', autocomplete: true },
-  { id: 8, name: 'sqrt(' }
+const MATH_OPERATIONS = [
+  { id: 'ac_1', name: '(', autocomplete: true },
+  { id: 'ac_2', name: ')', autocomplete: true },
+  { id: 'ac_3', name: '+', autocomplete: true },
+  { id: 'ac_4', name: '-', autocomplete: true },
+  { id: 'ac_5', name: '*', autocomplete: true },
+  { id: 'ac_6', name: '/', autocomplete: true },
+  { id: 'ac_7', name: '^', autocomplete: true },
+  { id: 'ac_8', name: 'sqrt(' }
 ]
 
 const App = () => {
   const [tags, setTags] = useState([])
-  const [result, setResult] = useState({ error: null, value: null })
+  const [execution, setExecution] = useState({ result: null, error: null })
   const [dynamicVariables, setDynamicVariables] = useState([])
   const [dvInput, setDvInput] = useState({ name: '', value: '' })
 
   useEffect(() => {
-    const result = tags.map(item => item.defaultValue || item.name)
+    const executionResult = tags.map(item => item.value ?? item.name)
     try {
-      const node = parse(result.join(''))
+      const node = parse(executionResult.join(''))
       const code = node.compile()
-      setResult({ value: code.evaluate(), error: null })
+      setExecution({ result: code.evaluate(), error: null })
     } catch (err) {
-      setResult({ value: null, error: err.message })
+      setExecution({ result: null, error: err.message })
     }
   }, [tags])
 
@@ -46,7 +46,7 @@ const App = () => {
   }
 
   const onError = (value) => {
-    setResult({ value: null, error: `"${value}" input is not allowed. Numbers (integers/floats) only.` })
+    setExecution({ result: null, error: `"${value}" input is not allowed. Numbers (integers/floats) only.` })
   }
 
   return (
@@ -55,26 +55,37 @@ const App = () => {
 
       <div>
         <p>Add dynamic variable:</p>
-        <input value={dvInput.name} type="text" placeholder="name" onChange={(e) => {
-          setDvInput((prevState) => ({
-            ...prevState,
-            name: e.target.value
-          }))
-        }}/>
-        <input value={dvInput.value} type="text" placeholder="value" onChange={(e) => {
-          setDvInput((prevState) => ({
-            ...prevState,
-            value: e.target.value
-          }))
-        }}/>
+        <input
+          value={dvInput.name}
+          type="text"
+          placeholder="name"
+          onChange={(e) => {
+            setDvInput((prevState) => ({
+              ...prevState,
+              name: e.target.value
+            }))
+          }}
+        />
+        <input
+          value={dvInput.value}
+          type="text"
+          placeholder="default value"
+          onChange={(e) => {
+            setDvInput((prevState) => ({
+              ...prevState,
+              value: e.target.value
+            }))
+          }}/>
         <button onClick={() => {
           setDynamicVariables((prevState) => (
-            [...prevState, { id: Date.now(), name: dvInput.name, defaultValue: dvInput.value, type: 'dv' }]
+            [...prevState, { id: Date.now(), name: dvInput.name, value: dvInput.value }]
           ))
           setDvInput({ name: '', value: '' })
-        }}>Add
+        }}>
+          Add
         </button>
       </div>
+
       <br/>
 
       <p>Calculator node:</p>
@@ -82,13 +93,11 @@ const App = () => {
         <select
           value="default"
           name="operations"
-          onChange={onSelectPredefined(OPERATIONS)}
+          onChange={onSelectPredefined(MATH_OPERATIONS)}
         >
           <option value="default" disabled>Operations</option>
           {
-            OPERATIONS.map((item) =>
-              <option key={item.id} value={item.id}>{item.name}</option>
-            )
+            MATH_OPERATIONS.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)
           }
         </select>
         {
@@ -113,7 +122,7 @@ const App = () => {
       <ReactTags
         allowNew
         minQueryLength={1}
-        suggestions={[...OPERATIONS, ...dynamicVariables]}
+        suggestions={[...MATH_OPERATIONS, ...dynamicVariables]}
         tags={tags}
         addTags={setTags}
         validation={testInput}
@@ -123,21 +132,36 @@ const App = () => {
 
       <div>
         {
-          result.error !== null && <b>Error: </b>
+          execution.error !== null && <b>Error: </b>
         }
         {
-          result.value !== null && <b>Result: </b>
+          execution.result !== null && <b>Execution result: </b>
         }
-        {result.error || result.value}
+        {execution.error || execution.result}
       </div>
       <br/>
 
       <div>
-        <b>Expression values:</b> <br/>
+        <b>Data to save in DB:</b>
+        <code>
+          {JSON.stringify(tags.map(tag => {
+            if (Number.isInteger(Number(tag.id))) {
+              return {id: tag.id}
+            } else {
+              return tag.name
+            }
+          }))}
+        </code>
+      </div>
+      <br/>
+
+      <div>
+        <b>Raw data:</b> <br/>
         <ul>
           {tags.map((item, index) => <li key={`${item.name + index}`}><code>{JSON.stringify(item)}</code></li>)}
         </ul>
       </div>
+
     </div>
   )
 }
