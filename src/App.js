@@ -1,37 +1,106 @@
-import React, { useState, useEffect } from 'react'
-import ReactTags from '../src/react-tags/lib/ReactTags'
-import { parse } from 'mathjs'
+import React, { useState, useEffect, useCallback } from 'react'
+import AdvLogicNode from '../src/AdvLogic/lib/ReactTags'
+import { create, all } from 'mathjs'
 import './App.css'
 
-const testInput = value => RegExp(/^[+-]?\d+(\.\d+)?$/).test(value)
-
+// Constants and input data
+const NODE_TYPE = {
+  CALC: 1,
+  ROUTE: 2
+}
 const MATH_OPERATIONS = [
-  { id: 'ac_1', name: '(', autocomplete: true },
-  { id: 'ac_2', name: ')', autocomplete: true },
-  { id: 'ac_3', name: '+', autocomplete: true },
-  { id: 'ac_4', name: '-', autocomplete: true },
-  { id: 'ac_5', name: '*', autocomplete: true },
-  { id: 'ac_6', name: '/', autocomplete: true },
-  { id: 'ac_7', name: '^', autocomplete: true },
-  { id: 'ac_8', name: 'sqrt(' }
+  { id: 'c_1', name: '(', autocomplete: true },
+  { id: 'c_2', name: ')', autocomplete: true },
+  { id: 'c_3', name: '+', autocomplete: true },
+  { id: 'c_4', name: '-', autocomplete: true },
+  { id: 'c_5', name: '*', longName: '* (multiplication)', autocomplete: true },
+  { id: 'c_6', name: '/', longName: '/ (division)', autocomplete: true },
+  { id: 'c_7', name: '^', longName: '^ (power)', autocomplete: true },
+  { id: 'c_8', name: 'sqrt(', longName: 'sqrt(x) - square root', autoclose: 1 }
 ]
+const LOGICAL_OPERATORS = [
+  { id: 'r_1', name: '>', longName: '> (greater than)' },
+  { id: 'r_2', name: '<', longName: '< (less than)' },
+  { id: 'r_3', name: '>=', longName: '>= (greater than or equal to)', autocomplete: true },
+  { id: 'r_4', name: '<=', longName: '<= (less than or equal to)', autocomplete: true },
+  { id: 'r_5', name: '==', longName: '== (is equal)', autocomplete: true },
+  { id: 'r_6', name: '!=', longName: '!= (not equal)', autocomplete: true },
+  { id: 'r_7', name: 'contains(', longName: 'contains(x, y) - contains y in x', autoclose: 3 },
+  { id: 'r_8', name: 'and', longName: 'logical AND' },
+  { id: 'r_9', name: 'or', longName: 'logical OR' },
+  { id: 'r_10', name: 'not', longName: 'logical NOT' },
+]
+const SEPARATORS = [
+  { id: 's_1', name: ',' }
+]
+const ALLOWED_OPERATIONS = [...MATH_OPERATIONS, ...LOGICAL_OPERATORS, ...SEPARATORS].reduce((acc, item) => {
+  acc.push(item.name)
+  return acc
+}, [])
 
+// Extends MathJS functionality before launch App
+const math = create(all)
+const contains = (args, math, scope) => {
+  const strings = args.map((arg) => {
+    return String(arg.value).trim().toLowerCase()
+  })
+  return strings[0].includes(strings[1])
+}
+contains.rawArgs = true
+math.import({ contains })
+
+// Main APP
 const App = () => {
   const [tags, setTags] = useState([])
+  const [possibleOperations, setPossibleOperations] = useState([...MATH_OPERATIONS])
+  const [nodeType, setNodeType] = useState(NODE_TYPE.CALC)
   const [execution, setExecution] = useState({ result: null, error: null })
   const [dynamicVariables, setDynamicVariables] = useState([])
   const [dvInput, setDvInput] = useState({ name: '', value: '' })
+  const [maxAutoClose, setMaxAutoClose] = useState(0)
 
   useEffect(() => {
-    const executionResult = tags.map(item => item.value ?? item.name)
+    const executionResult = (tags.map(item => {
+      let value = item.value ?? item.name
+      return (ALLOWED_OPERATIONS.includes(value) || !Number.isNaN(Number(value))) ? value : `'${value}'`
+    })).join(' ')
     try {
-      const node = parse(executionResult.join(''))
-      const code = node.compile()
-      setExecution({ result: code.evaluate(), error: null })
+      if (nodeType === NODE_TYPE.ROUTE && tags.length === 0) {
+        setExecution({ result: true, error: null })
+      } else {
+        setExecution({ result: math.evaluate(executionResult), error: null })
+      }
     } catch (err) {
       setExecution({ result: null, error: err.message })
     }
-  }, [tags])
+  }, [nodeType, tags])
+
+  useEffect(() => {
+    if (nodeType === NODE_TYPE.CALC) {
+      setPossibleOperations([...MATH_OPERATIONS])
+    }
+    if (nodeType === NODE_TYPE.ROUTE) {
+      setPossibleOperations([...MATH_OPERATIONS, ...LOGICAL_OPERATORS])
+    }
+    setTags([])
+  }, [nodeType])
+
+  useEffect(() => {
+    const maxAutoCloseValue = possibleOperations.reduce((max, item) => {
+      return (item.autoclose && item.autoclose > max) ? item.autoclose : max
+    }, 0)
+    setMaxAutoClose(maxAutoCloseValue)
+  }, [possibleOperations])
+
+  const testInput = useCallback(
+    (value) => {
+      if (nodeType === NODE_TYPE.CALC) {
+        return RegExp(/^[+-]?\d+(\.\d+)?$/).test(value)
+      }
+      return true
+    },
+    [nodeType]
+  )
 
   const onSelectPredefined = (predefinedArray) => (e) => {
     const suggestedValue = predefinedArray.find(item => String(item.id) === String(e.target.value))
@@ -45,15 +114,45 @@ const App = () => {
     }
   }
 
+  const changeNodeType = (e) => {
+    setNodeType(Number(e.target.value))
+  }
+
   const onError = (value) => {
     setExecution({ result: null, error: `"${value}" input is not allowed. Numbers (integers/floats) only.` })
+  }
+
+  const handleSetTags = newTags => {
+    if (newTags.length > tags.length) {
+      const autoCloseOffset = newTags.length > maxAutoClose ? maxAutoClose : newTags.length
+      for (let offset = 0; offset <= autoCloseOffset; offset++) {
+        const itemAutoClose = newTags[newTags.length - 1 - offset]?.autoclose
+        if (itemAutoClose === offset) {
+          setTags([...newTags, { id: 'c_2', name: ')', autocomplete: true }])
+          break
+        } else {
+          setTags([...newTags])
+        }
+      }
+    } else {
+      setTags([...newTags])
+    }
   }
 
   return (
     <div className="App-cont">
       <br/>
 
-      <div>
+      <div>Select node type: &nbsp;
+        <select
+          value={nodeType}
+          name="node_type"
+          onChange={changeNodeType}
+        >
+          <option value={NODE_TYPE.CALC}>Advanced Calculator</option>
+          <option value={NODE_TYPE.ROUTE}>Advanced Router</option>
+        </select>
+
         <p>Add dynamic variable:</p>
         <input
           value={dvInput.name}
@@ -78,7 +177,14 @@ const App = () => {
           }}/>
         <button onClick={() => {
           setDynamicVariables((prevState) => (
-            [...prevState, { id: Date.now(), name: dvInput.name, value: dvInput.value }]
+            // {type: 1, id: Number} - dynamic variable
+            // {type: 2, id: Number} - label
+            // {type: 10} - lead name
+            // {type: 11} - lead email
+            // {type: 12} - lead phone
+            // {type: 13} - lead company
+            // {type: 14} - lead location
+            [...prevState, { id: Date.now(), name: dvInput.name, value: dvInput.value, type: 1 }]
           ))
           setDvInput({ name: '', value: '' })
         }}>
@@ -88,16 +194,15 @@ const App = () => {
 
       <br/>
 
-      <p>Calculator node:</p>
       <div>Add &nbsp;
         <select
           value="default"
           name="operations"
-          onChange={onSelectPredefined(MATH_OPERATIONS)}
+          onChange={onSelectPredefined(possibleOperations)}
         >
           <option value="default" disabled>Operations</option>
           {
-            MATH_OPERATIONS.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)
+            possibleOperations.map((item) => <option key={item.id} value={item.id}>{item.longName || item.name}</option>)
           }
         </select>
         {
@@ -119,36 +224,34 @@ const App = () => {
       </div>
       <br/>
 
-      <ReactTags
+      <AdvLogicNode
         allowNew
         minQueryLength={1}
-        suggestions={[...MATH_OPERATIONS, ...dynamicVariables]}
+        suggestions={[...possibleOperations, ...dynamicVariables]}
         tags={tags}
-        addTags={setTags}
+        addTags={handleSetTags}
         validation={testInput}
         onError={onError}
       />
       <br/>
 
       <div>
-        {
-          execution.error !== null && <b>Error: </b>
-        }
-        {
-          execution.result !== null && <b>Execution result: </b>
-        }
-        {execution.error || execution.result}
+        <b>Result: </b>
+        {String(nodeType === NODE_TYPE.ROUTE ? !!execution.result : execution.result)}
+        <br/><br/>
+        <b>Error: </b>
+        {String(execution.error)}
       </div>
       <br/>
 
       <div>
         <b>Data to save in DB:</b>
         <code>
-          {JSON.stringify(tags.map(tag => {
-            if (Number.isInteger(Number(tag.id))) {
-              return {id: tag.id}
+          {JSON.stringify(tags.map(({ id, type, name }) => {
+            if (Number.isInteger(Number(id))) {
+              return { id, type }
             } else {
-              return tag.name
+              return name
             }
           }))}
         </code>
@@ -156,9 +259,10 @@ const App = () => {
       <br/>
 
       <div>
-        <b>Raw data:</b> <br/>
-        <ul>
-          {tags.map((item, index) => <li key={`${item.name + index}`}><code>{JSON.stringify(item)}</code></li>)}
+        <b>Raw state:</b> <code>[</code>
+        <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+          {tags.map((item, index) => <li style={{ marginLeft: 10 }} key={`${item.name + index}`}><code>{JSON.stringify(item)}</code></li>)}
+          <code>]</code>
         </ul>
       </div>
 
