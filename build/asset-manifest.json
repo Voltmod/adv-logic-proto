@@ -1,22 +1,22 @@
 {
   "files": {
-    "main.css": "/static/css/main.43f22875.chunk.css",
-    "main.js": "/static/js/main.7ef6d3ec.chunk.js",
-    "main.js.map": "/static/js/main.7ef6d3ec.chunk.js.map",
-    "runtime-main.js": "/static/js/runtime-main.297d9b8c.js",
-    "runtime-main.js.map": "/static/js/runtime-main.297d9b8c.js.map",
-    "static/js/2.2632e1e0.chunk.js": "/static/js/2.2632e1e0.chunk.js",
-    "static/js/2.2632e1e0.chunk.js.map": "/static/js/2.2632e1e0.chunk.js.map",
-    "static/js/3.7bdda0d0.chunk.js": "/static/js/3.7bdda0d0.chunk.js",
-    "static/js/3.7bdda0d0.chunk.js.map": "/static/js/3.7bdda0d0.chunk.js.map",
+    "main.css": "/adv-logic-proto/build/static/css/main.43f22875.chunk.css",
+    "main.js": "/adv-logic-proto/build/static/js/main.7ef6d3ec.chunk.js",
+    "main.js.map": "/adv-logic-proto/build/static/js/main.7ef6d3ec.chunk.js.map",
+    "runtime-main.js": "/adv-logic-proto/build/static/js/runtime-main.297d9b8c.js",
+    "runtime-main.js.map": "/adv-logic-proto/build/static/js/runtime-main.297d9b8c.js.map",
+    "adv-logic-proto/build/static/js/2.2632e1e0.chunk.js": "/adv-logic-proto/build/static/js/2.2632e1e0.chunk.js",
+    "adv-logic-proto/build/static/js/2.2632e1e0.chunk.js.map": "/adv-logic-proto/build/static/js/2.2632e1e0.chunk.js.map",
+    "adv-logic-proto/build/static/js/3.7bdda0d0.chunk.js": "/adv-logic-proto/build/static/js/3.7bdda0d0.chunk.js",
+    "adv-logic-proto/build/static/js/3.7bdda0d0.chunk.js.map": "/adv-logic-proto/build/static/js/3.7bdda0d0.chunk.js.map",
     "index.html": "/index.html",
-    "static/css/main.43f22875.chunk.css.map": "/static/css/main.43f22875.chunk.css.map",
-    "static/js/2.2632e1e0.chunk.js.LICENSE.txt": "/static/js/2.2632e1e0.chunk.js.LICENSE.txt"
+    "adv-logic-proto/build/static/css/main.43f22875.chunk.css.map": "/adv-logic-proto/build/static/css/main.43f22875.chunk.css.map",
+    "adv-logic-proto/build/static/js/2.2632e1e0.chunk.js.LICENSE.txt": "/adv-logic-proto/build/static/js/2.2632e1e0.chunk.js.LICENSE.txt"
   },
   "entrypoints": [
-    "static/js/runtime-main.297d9b8c.js",
-    "static/js/2.2632e1e0.chunk.js",
-    "static/css/main.43f22875.chunk.css",
-    "static/js/main.7ef6d3ec.chunk.js"
+    "adv-logic-proto/build/static/js/runtime-main.297d9b8c.js",
+    "adv-logic-proto/build/static/js/2.2632e1e0.chunk.js",
+    "adv-logic-proto/build/static/css/main.43f22875.chunk.css",
+    "adv-logic-proto/build/static/js/main.7ef6d3ec.chunk.js"
   ]
 }
