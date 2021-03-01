@@ -195,8 +195,16 @@
     text-align: center;
 }
 
-.react-tags__is-highlighted {
+.react-tags__is-highlighted-1 {
     background-color: #e6cfe4;
+}
+
+.react-tags__is-highlighted-2 {
+    background-color: #c8d2ea;
+}
+
+.react-tags__is-highlighted-3  {
+    background-color: #b2cfac;
 }
 
 .rc-tooltip.rc-tooltip-zoom-appear,

@@ -55,7 +55,7 @@ const App = () => {
   const [possibleOperations, setPossibleOperations] = useState([...MATH_OPERATIONS])
   const [nodeType, setNodeType] = useState(NODE_TYPE.CALC)
   const [execution, setExecution] = useState({ result: null, error: null })
-  const [dynamicVariables, setDynamicVariables] = useState([])
+  const [dynamicVariables, setDynamicVariables] = useState([{type: 2, name: 'Label', id: 1}, {type: 3, name: 'Lead Name', id: 2}])
   const [dvInput, setDvInput] = useState({ name: '', value: '' })
   const [maxAutoClose, setMaxAutoClose] = useState(0)
 
@@ -179,11 +179,11 @@ const App = () => {
           setDynamicVariables((prevState) => (
             // {type: 1, id: Number} - dynamic variable
             // {type: 2, id: Number} - label
-            // {type: 10} - lead name
-            // {type: 11} - lead email
-            // {type: 12} - lead phone
-            // {type: 13} - lead company
-            // {type: 14} - lead location
+            // {type: 10, id: 'leadName'} - lead name
+            // {type: 11, id: 'leadEmail'} - lead email
+            // {type: 12, id: 'leadPhone'} - lead phone
+            // {type: 13, id: 'leadCompany'} - lead company
+            // {type: 14, id: 'leadLocation'} - lead location
             [...prevState, { id: Date.now(), name: dvInput.name, value: dvInput.value, type: 1 }]
           ))
           setDvInput({ name: '', value: '' })
