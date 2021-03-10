@@ -26,28 +26,43 @@ const LOGICAL_OPERATORS = [
   { id: 'r_5', name: '==', longName: '== (is equal)', autocomplete: true },
   { id: 'r_6', name: '!=', longName: '!= (not equal)', autocomplete: true },
   { id: 'r_7', name: 'contains(', longName: 'contains(x, y) - contains y in x', autoclose: 3 },
-  { id: 'r_8', name: 'and', longName: 'logical AND' },
-  { id: 'r_9', name: 'or', longName: 'logical OR' },
-  { id: 'r_10', name: 'not', longName: 'logical NOT' },
+  { id: 'r_8', name: 'exists(', longName: 'exists(x) - is x exist', autoclose: 1 },
+  { id: 'r_9', name: 'and', longName: 'logical AND' },
+  { id: 'r_10', name: 'or', longName: 'logical OR' },
+  { id: 'r_11', name: 'not', longName: 'logical NOT' },
 ]
 const SEPARATORS = [
   { id: 's_1', name: ',' }
 ]
-const ALLOWED_OPERATIONS = [...MATH_OPERATIONS, ...LOGICAL_OPERATORS, ...SEPARATORS].reduce((acc, item) => {
+const ALLOWED_MATH_OPERATIONS = [...MATH_OPERATIONS, ...LOGICAL_OPERATORS, ...SEPARATORS].reduce((acc, item) => {
   acc.push(item.name)
   return acc
 }, [])
 
-// Extends MathJS functionality before launch App
-const math = create(all)
-const contains = (args, math, scope) => {
-  const strings = args.map((arg) => {
-    return String(arg.value).trim().toLowerCase()
-  })
-  return strings[0].includes(strings[1])
-}
-contains.rawArgs = true
-math.import({ contains })
+// Extends MathJS functionality with custom calculations
+const math = create(all);
+
+const contains = args => {
+  const strings = args.map(arg => {
+    let value;
+    if (typeof arg.value === "string") {
+      value = arg.value;
+    } else if ((typeof arg.value === "number")) {
+      value = String(arg.value);
+    } else {
+      value = arg.toString();
+    }
+    return value.trim().toLowerCase();
+  });
+  return strings.length ? strings[0].includes(strings[1]) : false;
+};
+contains.rawArgs = true;
+const exists = ([argument]) => {
+  return !!(argument?.value ?? argument.toString());
+};
+exists.rawArgs = true;
+
+math.import({ contains, exists });
 
 // Main APP
 const App = () => {
@@ -55,15 +70,37 @@ const App = () => {
   const [possibleOperations, setPossibleOperations] = useState([...MATH_OPERATIONS])
   const [nodeType, setNodeType] = useState(NODE_TYPE.CALC)
   const [execution, setExecution] = useState({ result: null, error: null })
-  const [dynamicVariables, setDynamicVariables] = useState([{type: 2, name: 'Label', id: 1}, {type: 3, name: 'Lead Name', id: 2}])
+  const [dynamicVariables, setDynamicVariables] = useState([
+    { type: 2, name: 'Some Label', id: 1 },
+    { type: 3, name: 'Some Lead Name', id: 1 }
+  ])
   const [dvInput, setDvInput] = useState({ name: '', value: '' })
   const [maxAutoClose, setMaxAutoClose] = useState(0)
+
+  const wrapUpStringValues = useCallback(value => {
+    if (typeof value === "undefined" || typeof value === "boolean") {
+      return value === true;
+    } else if (!Number.isNaN(Number(value))) {
+      if (String(value).includes("+") || String(value).includes("-")) {
+        return `'${value}'`;
+      } else {
+        return Number(value);
+      }
+    } else if (ALLOWED_MATH_OPERATIONS.includes(value)) {
+      return value;
+    } else if (value === "true" || value === "false") {
+      return value === "true";
+    } else {
+      return `'${value}'`;
+    }
+  }, [])
 
   useEffect(() => {
     const executionResult = (tags.map(item => {
       let value = item.value ?? item.name
-      return (ALLOWED_OPERATIONS.includes(value) || !Number.isNaN(Number(value))) ? value : `'${value}'`
+      return wrapUpStringValues(value)
     })).join(' ')
+    console.log(executionResult)
     try {
       if (nodeType === NODE_TYPE.ROUTE && tags.length === 0) {
         setExecution({ result: true, error: null })
@@ -73,7 +110,7 @@ const App = () => {
     } catch (err) {
       setExecution({ result: null, error: err.message })
     }
-  }, [nodeType, tags])
+  }, [nodeType, tags, wrapUpStringValues])
 
   useEffect(() => {
     if (nodeType === NODE_TYPE.CALC) {
@@ -202,7 +239,8 @@ const App = () => {
         >
           <option value="default" disabled>Operations</option>
           {
-            possibleOperations.map((item) => <option key={item.id} value={item.id}>{item.longName || item.name}</option>)
+            possibleOperations.map((item) => <option key={item.id}
+                                                     value={item.id}>{item.longName || item.name}</option>)
           }
         </select>
         {
@@ -215,7 +253,7 @@ const App = () => {
               <option value="default" disabled>Variables</option>
               {
                 dynamicVariables.map((item) =>
-                  <option key={item.id} value={item.id}>{item.name}</option>
+                  <option key={item.id + item.type} value={item.id}>{item.name}</option>
                 )
               }
             </select>
@@ -261,7 +299,8 @@ const App = () => {
       <div>
         <b>Raw state:</b> <code>[</code>
         <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-          {tags.map((item, index) => <li style={{ marginLeft: 10 }} key={`${item.name + index}`}><code>{JSON.stringify(item)}</code></li>)}
+          {tags.map((item, index) => <li style={{ marginLeft: 10 }} key={`${item.name + index}`}>
+            <code>{JSON.stringify(item)}</code></li>)}
           <code>]</code>
         </ul>
       </div>
