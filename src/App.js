@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import AdvLogicNode from '../src/AdvLogic/lib/ReactTags'
 import { create, all } from 'mathjs'
 import './App.css'
+import jsesc from 'jsesc'
 
 // Constants and input data
 const NODE_TYPE = {
@@ -82,7 +83,7 @@ const App = () => {
       return value === true;
     } else if (!Number.isNaN(Number(value))) {
       if (String(value).includes("+") || String(value).includes("-")) {
-        return `'${value}'`;
+        return jsesc(value, {'json': true});
       } else {
         return Number(value);
       }
@@ -91,7 +92,7 @@ const App = () => {
     } else if (value === "true" || value === "false") {
       return value === "true";
     } else {
-      return `'${value}'`;
+      return jsesc(value, {'json': true});
     }
   }, [])
 
